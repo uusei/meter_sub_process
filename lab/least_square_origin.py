@@ -13,6 +13,8 @@ def least_square(xi,yi):
     zi=np.vstack((xi.T*xi.T,xi.T*yi.T,yi.T*yi.T,xi.T,yi.T,np.ones((len(xi),1)).T))
     Z1=np.dot(zi,zi.T)
     aa=characteristic_value(Z1,S1)
+    ef=error_cal(zi,aa)
+    print(ef)
     return aa
 
 def characteristic_value(zi,si):
@@ -20,6 +22,11 @@ def characteristic_value(zi,si):
     VV=np.argmin(abs(eva))
     aa=evt[:,VV]
     return aa
+
+def error_cal(zi,aa):
+    epslion=abs(np.dot(zi.T,aa))
+    EF=sum(epslion)
+    return EF
 
 def make_num():
     xi=[]
@@ -30,9 +37,9 @@ def make_num():
         yi.append(2*mt.sin(thr))
     return np.array(xi),np.array(yi)
 
-t1 = time.time()
-xi,yi = make_num()
-al1 = least_square(xi,yi)
-print(al1)
-t2 = time.time()
-print(int(round((t2-t1) * 1000)))
+# t1 = time.time()
+# xi,yi = make_num()
+# al1 = least_square(xi,yi)
+# print(al1)
+# t2 = time.time()
+# print(int(round((t2-t1) * 1000)))

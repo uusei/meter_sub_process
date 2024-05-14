@@ -4,15 +4,17 @@ import math as mt
 import scipy.linalg as sl
 import time
 
-def fast_lts(xi,yi,r=0.6,n=3):
+def fast_lts(xi,yi,r=0.6,n=10):
     zi=[]
     ni=[]
     ei=[]
+    xx=[]
+    yy=[]
     ZO=np.zeros((3,3))
     lamba=np.array([[0, 0, 2],[0, -1, 0],[2, 0, 0]],np.float32)
     S1=np.vstack((np.hstack((lamba,ZO)),np.hstack((ZO,ZO))))
 
-    SA=shuffle_array(int(len(xi)*r))
+    SA=shuffle_array(int(len(xi)),r)
     xia=xi[SA]
     yia=yi[SA]
 
@@ -23,19 +25,21 @@ def fast_lts(xi,yi,r=0.6,n=3):
     for i in range(0,n):
         aa = characteristic_value(Z1,S1)
         ef1=error_cal(zi,aa)
-        SA=shuffle_array(int(len(xi)*r))
+        SA=shuffle_array(int(len(xi)),r)
         xia=xi[SA]
         yia=yi[SA]
         zi=np.vstack((xia.T*xia.T,xia.T*yia.T,yia.T*yia.T,xia.T,yia.T,np.ones((len(xia),1)).T))
         Z1=np.dot(zi,zi.T)
         aa = characteristic_value(Z1,S1)
         ef2 = error_cal(zi,aa)
-        if ef1<ef1:
+        if ef2>ef1:
            continue
         else:
             ni.append(aa)
             ei.append(ef2)
-            SA=shuffle_array(int(len(xi)*r))
+            xx.append(xia)
+            yy.append(yia)
+            SA=shuffle_array(int(len(xi)),r)
             xia=xi[SA]
             yia=yi[SA]
 
@@ -44,8 +48,11 @@ def fast_lts(xi,yi,r=0.6,n=3):
     ni=np.array(ni)
     vei=np.argmin(abs(np.array(ei)))
     vni=ni[vei,:]
+    vx=np.array(xx)[vei,:]
+    vy=np.array(yy)[vei,:]
+    
     print(vni)
-    return ni,ei
+    return vni,vx,vy
 
 def characteristic_value(zi,si):
     (eva,evt)=sl.eig(zi,si)
@@ -53,10 +60,17 @@ def characteristic_value(zi,si):
     aa=evt[:,VV]
     return aa
 
-def shuffle_array(len):
-    ran = np.arange(len)
+def shuffle_array(lan,r):
+    ran = np.arange(lan)
     np.random.shuffle(ran)
-    return ran
+    ran1=ran[0:int(lan*r)]
+    while True:
+       if (len(ran1[ran1<8])>=1) & (len(ran1[(ran1>=8) & (ran1<16)])>=1) & (len(ran1[(ran1>=16) & (ran1<24)])>=1) & (len(ran1[(ran1>=24) & (ran1<32)])>=1):
+           return ran1
+       else:
+           np.random.shuffle(ran)
+           ran1=ran[0:int(lan*r)]
+
 
 def error_cal(zi,aa):
     epslion=abs(np.dot(zi.T,aa))
