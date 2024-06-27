@@ -8,12 +8,14 @@ import time
 # PAI值
 pi = math.pi
 # 2 确定旋转角度
-angle = pi* (0) / 360 * 2 
+angle = pi* (-90) / 360 * 2 
 can=math.cos(angle)
 san=math.sin(angle)
 
 def access_point(pic):
     contours, hierarchy = cv2.findContours(pic, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    boundingBoxes = [cv2.boundingRect(c) for c in contours]
+    (contours, boundingBoxes) = zip(*sorted(zip(contours, boundingBoxes), key=lambda b: b[1][0], reverse=True))
     xi = []
     yi = []
     valid_cntrs = []
@@ -27,19 +29,19 @@ def access_point(pic):
             yi.append(ptry)
     return xi,yi
 
-def cal_point(pic,point):
+def cal_point(pic,actual_pic,point):
     contours, hierarchy = cv2.findContours(pic, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    num=0
+
     x_point=point[0]
     y_point=point[1]
     
     for cntr in contours:
         x, y, w, h = cv2.boundingRect(cntr)
         if (cv2.contourArea(cntr) >= 25) & (cv2.contourArea(cntr) <= 26384)&(np.absolute(x_point-x-w/2)<=70)&(np.absolute(y_point-y-h/2)<=70):
-            cv2.circle(pic, (int(x+w/2),int(y+h/2)), 8, (0,127,127), -1)
-            num=+1
+            out_pic=actual_pic[y:int(y+h+1),x:int(x+w+1)]
+            break
 
-    return pic
+    return out_pic
 
 
 def trans_polar(point,r,xe,ye):
@@ -81,6 +83,7 @@ def readpic(obj,obj_org):
     pic_org=cv2.imread(obj_org,cv2.IMREAD_GRAYSCALE)
     pic=cv2.imread(obj,cv2.IMREAD_GRAYSCALE)
     # imw,imh=pic.shape[0],pic.shape[1]
+
     pic1=cv2.imread(obj)
     pic2=pic.copy()
     pic2[pic==2]=255
@@ -157,23 +160,26 @@ def readpic(obj,obj_org):
     
     M = cv2.getRotationMatrix2D((int(xe),int(ye)), -reel.ang+90, 1)
     image_perspective = cv2.warpAffine(image_perspective, M, (pic_trans.shape[1], pic_trans.shape[0])) # 极坐标 仿射变换
+    M = cv2.getRotationMatrix2D((int(xe),int(ye)), -90, 1)
+    image_perspective3 = cv2.warpAffine(image_perspective, M, (pic_trans.shape[1], pic_trans.shape[0]))
+    M = cv2.getRotationMatrix2D((int(xe),int(ye)), -reel.ang, 1)
     org_perspective = cv2.warpAffine(org_perspective, M, (pic_org.shape[1], pic_org.shape[0])) # 极坐标 仿射变换
+    
+    
     # cv2.imshow('out', org_perspective)
     # cv2.waitKey(0)
-    M1 = cv2.getRotationMatrix2D((int(xe),int(ye)), -90, 1)
-    image_perspective3 = cv2.warpAffine(image_perspective, M1, (pic_trans.shape[1], pic_trans.shape[0])) # 原版 仿射变换
-    per_org = cv2.warpAffine(org_perspective, M1, (pic_org.shape[1], pic_org.shape[0])) # 极坐标 仿射变换
 
-    # cv2.imshow('out', per_org)
-    # cv2.waitKey(0)
-    return image_perspective3,per_org
-    '''
+    # 遮罩和原图的矫正图
+    # return image_perspective,org_perspective
+    
     # 输入图像圆的半径，一般是宽高一半
     r = int(max_shaft/1.8)
     # line_image0 = trans_polar(image_perspective,r,xe,ye)
     line_image = cv2.warpPolar(image_perspective, (int(r),int(2*pi*r)), (int(xe),int(ye)), r, cv2.INTER_LINEAR | cv2.WARP_FILL_OUTLIERS)
-    line_image=cv2.rotate(line_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    line_image = cv2.rotate(line_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
     line_image = line_image[:int(0.5*r),:]
+    # cv2.imshow('out1', line_image)
+    # cv2.waitKey(0)
 
 
     gray_line_image_1=cv2.cvtColor(line_image,cv2.COLOR_BGR2GRAY)
@@ -200,19 +206,20 @@ def readpic(obj,obj_org):
     # 数字
     xline_3, yline_3 = access_point(gray_line_image_3)
     
-    tmp_line = np.absolute(xline_1[0] - np.array(xline_3))
-    ind_tmp0 = np.argmin(tmp_line)
-    tmp_line[ind_tmp0] = 1024
-    ind_tmp1 = np.argmin(tmp_line)
+    # tmp_line = np.absolute(xline_1[0] - np.array(xline_3))
+    # ind_tmp0 = np.argmin(tmp_line)
+    # tmp_line[ind_tmp0] = 1024
+    # ind_tmp1 = np.argmin(tmp_line)
+    out_cs=[]
+    for ind in range(len(xline_3)):
+        po_line=xline_3[ind],yline_3[ind]
+        pot_line1 = trans_polar(po_line,r,xe,ye)
+        outpic = cal_point(image_perspective3,org_perspective,pot_line1)
+        out_cs.append(outpic)
+        # cv2.imshow('out2', outpic)
+        # cv2.waitKey(0)
 
-    po_line1 = xline_3[ind_tmp0],yline_3[ind_tmp0]
-    po_line2 = xline_3[ind_tmp1],yline_3[ind_tmp1]
-
-    pot_line1 = trans_polar(po_line1,r,xe,ye)
-    pot_line2 = trans_polar(po_line2,r,xe,ye)
-
-    num1 = cal_point(image_perspective3,pot_line1)
-    num2 = cal_point(image_perspective3,pot_line2)
+    return out_cs
     
     
     # t2 = time.time()
@@ -221,7 +228,7 @@ def readpic(obj,obj_org):
     # cv2.waitKey(0)
     
     # print(int(round((t2-t1) * 1000)))
-    '''
+    
     
     
 
