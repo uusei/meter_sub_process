@@ -4,7 +4,7 @@ import fast_LTS as FL
 import math
 import rectify as rec
 import time
-
+import os
 # PAI值
 pi = math.pi
 # 2 确定旋转角度
@@ -205,11 +205,27 @@ def readpic(obj,obj_org):
     xline_2, yline_2 = access_point(gray_line_image_2)
     # 数字
     xline_3, yline_3 = access_point(gray_line_image_3)
-    
-    # tmp_line = np.absolute(xline_1[0] - np.array(xline_3))
-    # ind_tmp0 = np.argmin(tmp_line)
-    # tmp_line[ind_tmp0] = 1024
-    # ind_tmp1 = np.argmin(tmp_line)
+    # 对应数字区间
+    tmp_line = np.absolute(xline_1[0] - np.array(xline_3))
+    ind_tmp0 = np.argmin(tmp_line)
+    tmp_line[ind_tmp0] = 1024
+    ind_tmp1 = np.argmin(tmp_line)
+    # 对应刻度点区间
+    tmp_line = np.absolute(xline_3[ind_tmp0] - np.array(xline_2))
+    ind_kedu0 = np.argmin(tmp_line)
+
+    tmp_line = np.absolute(xline_3[ind_tmp1] - np.array(xline_2))
+    ind_kedu1 = np.argmin(tmp_line)
+    # 刻度点区间百分比
+    meter_place=np.absolute(xline_2[ind_kedu1]-xline_2[ind_kedu0])
+    lit_index=min(ind_kedu1,ind_kedu0)
+
+    meter_inplace=np.absolute(xline_2[lit_index]-xline_1[0])
+    percent=meter_inplace/meter_place
+    objname=obj.split('/')[-1].split('.')[0]
+    # 保存信息
+    dic={"object":objname,"length":str(len(xline_3)),"index1":str(ind_tmp0),"index0":str(ind_tmp1),"percent":str(percent)}
+
     out_cs=[]
     for ind in range(len(xline_3)):
         po_line=xline_3[ind],yline_3[ind]
@@ -219,7 +235,7 @@ def readpic(obj,obj_org):
         # cv2.imshow('out2', outpic)
         # cv2.waitKey(0)
 
-    return out_cs
+    return out_cs,dic
     
     
     # t2 = time.time()

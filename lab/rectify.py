@@ -135,6 +135,9 @@ class rectifing:
             self.s_lst[self.lst_min0]=999
             
             self.lst_min1=np.argmin(self.s_lst)
+            self.s_lst[self.lst_min1]=999
+
+            self.lst_min2=np.argmin(self.s_lst)
             if np.absolute(self.lst_min1-self.lst_min0)!=1:
                 if ((self.lst_min1 in [0,3]) & (self.lst_min0 in [0,3])):
                     pass
@@ -142,7 +145,8 @@ class rectifing:
                     return 0
                     # self.s_lst[self.lst_min1]=999
                     # self.lst_min1=np.argmin(self.s_lst)
-            
+            if self.lst_min2 in [self.lst_min0,self.lst_min1]:
+                return 0
 
             po1,po2,qua=self.find_quadrant_point(self.lst_min0,self.lst_min1)
             slope=(po1[1]-po2[1])/(po1[0]-po2[0])
